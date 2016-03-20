@@ -1,0 +1,157 @@
+<AuthnProviderAlias dbd pseudo>
+    AuthDBDUserPWQuery "SELECT sha1_password FROM users WHERE (pseudo LIKE %s)"
+</AuthnProviderAlias>
+
+<AuthnProviderAlias dbd mail>
+    AuthDBDUserPWQuery "SELECT sha1_password FROM users WHERE (email = %s)"
+</AuthnProviderAlias>
+
+<virtualHost *:80>
+    # domaines
+    ServerName gign.rez-gif.supelec.fr
+    ServerAlias gign.larez.fr gign
+
+
+    RedirectMatch 301 ^/wiki(.*)$  https://gign.rez-gif.supelec.fr/wiki$1
+    RedirectMatch 301 ^(.*)/sign_in$  https://gign.rez-gif.supelec.fr/$1/sign_in
+    RedirectMatch 301 ^(.*)/sign_up$  https://gign.rez-gif.supelec.fr/$1/sign_up
+
+    # Logs
+    CustomLog ${APACHE_LOG_DIR}/gign-access.log combined
+    ErrorLog ${APACHE_LOG_DIR}/gign-errors.log
+
+    # Securisation
+    <IfModule mpm_itk_module>
+        AssignUserID gign gign
+    </IfModule>
+    
+
+    # SSL
+    #SSLEngine on
+    #SSLCertificateFile /etc/apache2/cert/gign.crt
+    #SSLCertificateKeyFile /etc/apache2/cert/gign.key
+
+    DocumentRoot /var/www/gign/public
+    <Directory /var/www/gign/public>
+      AllowOverride all
+      Options -MultiViews
+    </Directory>
+
+    ProxyRequests Off
+    ProxyPassReverse /stepmania_files http://link.larez.fr/stepmania_files
+    ProxyPass       /stepmania_files http://link.larez.fr/stepmania_files
+    Alias /wiki/ /var/www/gignwiki/
+    RedirectMatch ^/wiki/?$ /wiki/index.php/Accueil
+
+    Alias /gign_monitor/ /var/www/esm/
+    RedirectMatch ^/gign_monitor/?$ /gign_monitor/index.php
+
+    ProxyPassReverse /luigi_monitor http://luigimonitor.larez.fr/luigi_monitor
+    ProxyPass       /luigi_monitor http://luigimonitor.larez.fr/luigi_monitor
+
+    proxypassreverse /link_monitor http://link.larez.fr/link_monitor
+    proxypass       /link_monitor http://link.larez.fr/link_monitor
+
+    proxypassreverse /mario_monitor http://mario.larez.fr/mario_monitor
+    proxypass       /mario_monitor http://mario.larez.fr/mario_monitor
+
+    proxypassreverse /maskass_monitor http://maskass.larez.fr/maskass_monitor
+    proxypass       /maskass_monitor http://maskass.larez.fr/maskass_monitor
+
+    alias /dash /tmp/dash
+
+    WSGIApplicationGroup %{GLOBAL}
+    WSGIScriptAlias /prewikka /usr/local/share/prewikka/prewikka.wsgi
+
+    <Location ~ /(stepmania_files|wiki|gign_monitor|luigi_monitor|link_monitor|mario_monitor|maskass_monitor|prewikka)>
+
+        <IfModule mod_passenger.c>
+            PassengerEnabled off
+        </IfModule>
+
+        Options -ExecCGI -Indexes +FollowSymlinks -Includes -IncludesNOEXEC
+        AuthType Basic
+        AuthName "Acces interne : Les identifiants sont ceux du site (pseudo:mdp)"
+        AuthBasicProvider mail pseudo
+
+        require valid-user
+        Order allow,deny
+        Allow from 10.0.0.0/8
+
+        satisfy any
+    </Location>
+</VirtualHost>
+
+<virtualHost *:443>
+    # domaines
+    ServerName gign.rez-gif.supelec.fr
+    ServerAlias gign.larez.fr gign
+
+
+    # Logs
+    CustomLog ${APACHE_LOG_DIR}/gign-access.log combined
+    ErrorLog ${APACHE_LOG_DIR}/gign-errors.log
+
+    # Securisation
+    <IfModule mpm_itk_module>
+        AssignUserID gign gign
+    </IfModule>
+    
+
+    # SSL
+    SSLEngine on
+    SSLCertificateFile /etc/ssl/certs/gign.crt
+    SSLCertificateKeyFile /etc/ssl/private/gign.key
+
+    DocumentRoot /var/www/gign/public
+    <Directory /var/www/gign/public>
+      AllowOverride all
+      Options -MultiViews
+    </Directory>
+
+    ProxyRequests Off
+    ProxyPassReverse /stepmania_files http://link.larez.fr/stepmania_files
+    ProxyPass       /stepmania_files http://link.larez.fr/stepmania_files
+    
+    Alias /wiki/ /var/www/gignwiki/
+    RedirectMatch ^/wiki/?$ /wiki/index.php/Accueil
+
+    Alias /gign_monitor/ /var/www/esm/
+    RedirectMatch ^/gign_monitor/?$ /gign_monitor/index.php
+    
+    ProxyPassReverse /luigi_monitor http://luigimonitor.larez.fr/luigi_monitor
+    ProxyPass       /luigi_monitor http://luigimonitor.larez.fr/luigi_monitor
+
+    ProxyPassReverse /link_monitor http://link.larez.fr/link_monitor
+    ProxyPass       /link_monitor http://link.larez.fr/link_monitor
+
+    proxypassreverse /mario_monitor http://mario.larez.fr/mario_monitor
+    proxypass       /mario_monitor http://mario.larez.fr/mario_monitor
+
+    proxypassreverse /maskass_monitor http://maskass.larez.fr/maskass_monitor
+    proxypass       /maskass_monitor http://maskass.larez.fr/maskass_monitor
+
+    WSGIApplicationGroup %{GLOBAL}
+    WSGIScriptAlias /prewikka /usr/local/share/prewikka/prewikka.wsgi
+
+    alias /dash /tmp/dash
+
+    <Location ~ /(stepmania_files|wiki|gign_monitor|luigi_monitor|link_monitor|mario_monitor|maskass_monitor|prewikka)>
+
+        <IfModule mod_passenger.c>
+            PassengerEnabled off
+        </IfModule>
+
+        Options -ExecCGI -Indexes +FollowSymlinks -Includes -IncludesNOEXEC
+        AuthType Basic
+        AuthName "Acces interne : Les identifiants sont ceux du site (email:mdp)"
+        AuthBasicProvider mail pseudo
+
+        require valid-user
+        Order allow,deny
+        Allow from 10.0.0.0/8
+
+        satisfy any
+    </Location>
+</VirtualHost>
+
